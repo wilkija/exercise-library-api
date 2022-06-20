@@ -20,67 +20,6 @@ MongoClient.connect(dbConnectionStr, { useUnifiedTopology: true })
     .then(client => {
         console.log(`Connected to ${dbName} Database`);
         db = client.db(dbName);
-
-        app.get('/', (req, res) => {
-            db.collection('library').find().toArray()
-                .then(data => {
-                    const sample = routine(data);
-                    res.render('index.ejs', { info: sample });
-                })
-                .catch(err => console.error(err))
-        });
-        
-        app.get('/api/library', (req, res) => {
-            db.collection('library').find().toArray()
-                .then(data => {
-                    res.json(data)
-                })
-                .catch(err => console.error(err))
-        });
-        
-        app.get('/api/library/:title', (req, res) => {
-            const id = req.params.title;
-            db.collection('library').findOne({ title: id })
-                .then(data => {
-                    if (data) {
-                        res.json(data);
-                    } else {
-                        res.status(404).end();
-                    }
-                })    
-                .catch(err => console.error(err))
-        });
-        
-        app.delete('/api/library/:title', (req, res) => {
-            const id = req.params.title;
-            db.collection('library').deleteOne({ title: id })
-                .then(result => {
-                    console.log('Exercise deleted');    
-                    res.json('Exercise deleted');
-                })    
-                .catch(err => console.error(err))
-        });
-        
-        app.post('/api/library', (req, res) => {
-            
-            if (!req.body.title) {
-                return res.status(400).json({
-                    error: 'content missing'
-                });
-            }
-        
-            db.collection('library').insertOne({
-                title: req.body.title,
-                instructions: req.body.instructions,
-                type: req.body.type,
-                link: req.body.type
-            })
-                .then(result => {
-                    console.log('Exercise added');
-                    res.json('Exercise added')
-                })
-                .catch(err => console.error(err))
-        });
     })
     .catch(err => console.error(err));
 
@@ -99,6 +38,66 @@ function routine(arr) {
     return [randomEx(upper), randomEx(core), randomEx(lower)]
 }
 
+app.get('/', (req, res) => {
+    db.collection('library').find().toArray()
+        .then(data => {
+            const sample = routine(data);
+            res.render('index.ejs', { info: sample });
+        })
+        .catch(err => console.error(err))
+});
+
+app.get('/api/library', (req, res) => {
+    db.collection('library').find().toArray()
+        .then(data => {
+            res.json(data)
+        })
+        .catch(err => console.error(err))
+});
+
+app.get('/api/library/:title', (req, res) => {
+    const id = req.params.title;
+    db.collection('library').findOne({ title: id })
+        .then(data => {
+            if (data) {
+                res.json(data);
+            } else {
+                res.status(404).end();
+            }
+        })    
+        .catch(err => console.error(err))
+});
+
+app.delete('/api/library/:title', (req, res) => {
+    const id = req.params.title;
+    db.collection('library').deleteOne({ title: id })
+        .then(result => {
+            console.log('Exercise deleted');    
+            res.json('Exercise deleted');
+        })    
+        .catch(err => console.error(err))
+});
+
+app.post('/api/library', (req, res) => {
+    
+    if (!req.body.title) {
+        return res.status(400).json({
+            error: 'content missing'
+        });
+    }
+
+    db.collection('library').insertOne({
+        title: req.body.title,
+        instructions: req.body.instructions,
+        type: req.body.type,
+        link: req.body.type
+    })
+        .then(result => {
+            console.log('Exercise added');
+            res.json('Exercise added')
+        })
+        .catch(err => console.error(err))
+});
 
 // Make connection with host (local or cloud)
 app.listen(process.env.PORT || PORT, () => {
