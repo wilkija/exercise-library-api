@@ -1,86 +1,104 @@
 const express = require('express');
 const app = express();
+const MongoClient = require('mongodb').MongoClient;
 const cors = require('cors');
 const PORT = 8000;
+require('dotenv').config()
 
+let db, 
+    dbConnectionStr = process.env.DB_STRING,
+    dbName = 'exercise'
 
-app.use(express.json());
-app.use(cors());
+// Connect to database
+MongoClient.connect(dbConnectionStr, { useUnifiedTopology: true })
+    .then(client => {
+        console.log(`Connected to ${dbName} Database`);
+        db = client.db(dbName);
+    });
 
-let library = [
-{
-    id: 1,
-    content: "HTML is easy",
-    date: "2022-05-30T17:30:31.098Z",
-    important: true
-},
-{
-    id: 2,
-    content: "Browser can execute only Javascript",
-    date: "2022-05-30T18:39:34.091Z",
-    important: false
-},
-{
-    id: 3,
-    content: "GET and POST are the most important methods of HTTP protocol",
-    date: "2022-05-30T19:20:14.298Z",
-    important: true
-}
-];
-
-app.get('/', (req, res) => {
-    res.send('<h1>Hello World!</h1>');
-});
-
-app.get('/api/library', (req, res) => {
-    res.json(library);
-});
-
+// Make connection with host (local or cloud)
 app.listen(process.env.PORT || PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
 
-app.get('/api/library/:id', (req, res) => {
-    const id = Number(req.params.id);
-    const exercise = library.find(exercise => exercise.id === id);
-    if (exercise) {
-        res.json(exercise);
-    } else {
-        res.status(404).end();
-    }
-});
+app.set('view engine', 'ejs'); 
+app.use(express.json()); 
+app.use(cors());
+app.use(express.static('public'));
+app.use(express.urlencoded({ extended: true }))
 
-app.delete('/api/library/:id', (req, res) => {
-    const id = Number(req.params.id);
-    library = library.filter(exercise => exercise.id !== id);
-
-    res.status(204).end();
-});
-
-const generateId = () => {
-    const maxId = library.length > 0
-        ? Math.max(...library.map(n => n.id))
-        : 0
-    return maxId + 1;
+// Randomly select an exercise from the three categories 
+function randomEx(arr) {
+    const index = Math.floor(Math.random() * arr.length);
+    const item = arr[index];
+    return item;
 }
 
+// Sort exercises from db into categories based on type of exercise 
+function routine(arr) {
+    const upper = arr.filter(exercise => exercise.type === 'Upper body');
+    const core = arr.filter(exercise => exercise.type === 'Core');
+    const lower = arr.filter(exercise => exercise.type ===  'Lower body');
+    return [randomEx(upper), randomEx(core), randomEx(lower)]
+}
+
+app.get('/', (req, res) => {
+    db.collection('library').find().toArray()
+        .then(data => {
+            const sample = routine(data);
+            res.render('index.ejs', { info: sample });
+        })
+        .catch(err => console.error(err))
+});
+
+app.get('/api/library', (req, res) => {
+    db.collection('library').find().toArray()
+        .then(data => {
+            res.json(data)
+        })
+        .catch(err => console.error(err))
+});
+
+app.get('/api/library/:title', (req, res) => {
+    const id = req.params.title;
+    db.collection('library').findOne({ title: id })
+        .then(data => {
+            if (data) {
+                res.json(data);
+            } else {
+                res.status(404).end();
+            }
+        })    
+        .catch(err => console.error(err))
+});
+
+app.delete('/api/library/:title', (req, res) => {
+    const id = req.params.title;
+    db.collection('library').deleteOne({ title: id })
+        .then(result => {
+            console.log('Exercise deleted');    
+            res.json('Exercise deleted');
+        })    
+        .catch(err => console.error(err))
+});
+
 app.post('/api/library', (req, res) => {
-    const body = req.body;
     
-    if (!body.content) {
+    if (!req.body.title) {
         return res.status(400).json({
             error: 'content missing'
         });
     }
 
-    const exercise = {
-        content: body.content,
-        important: body.important || false, 
-        date: new Date(),
-        id: generateId(),
-    };
-
-    library = library.concat(exercise);
-
-    res.json(exercise);
+    db.collection('library').insertOne({
+        title: req.body.title,
+        instructions: req.body.instructions,
+        type: req.body.type,
+        link: req.body.type
+    })
+        .then(result => {
+            console.log('Exercise added');
+            res.json('Exercise added')
+        })
+        .catch(err => console.error(err))
 });
