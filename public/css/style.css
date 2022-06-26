@@ -45,6 +45,10 @@ header.sticky {
   margin-right: 10px;
 }
 
+.card {
+    margin: 1vw;
+}
+
 .hidden {
     display: none !important;
 }
@@ -93,7 +97,7 @@ header.sticky {
     top: 0px;
     left: 0px;
     width: 100vw;
-    height: 100vh;
+    height: 100%;
     background: rgba(0,0,0,0.7);
     z-index: 1000;
 }
@@ -188,10 +192,24 @@ header.sticky {
     .exerciseDisplay {
         margin: 2vh 15%;
     }
+    #cardSection {
+        flex-direction: column;
+        align-items: center;
+    }
+    .card img {
+        display: none;
+    }
 }
 
 @media screen and (max-width: 768px) {
     .exerciseDisplay {
         margin: 2vh 10%;
+    }
+    #cardSection {
+        flex-direction: column;
+        align-items: center;
+    }
+    .card img {
+        display: none;
     }
 }
